@@ -28,5 +28,5 @@ def run(cmd, timeout=15):
 def app_dir():
     """Project root (the folder above src/), also when frozen."""
     if getattr(sys, "frozen", False):
-        return os.path.dirname(sys.executable)
+        return getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

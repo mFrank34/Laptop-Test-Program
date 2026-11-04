@@ -9,7 +9,7 @@ from tkinter import filedialog, messagebox, scrolledtext
 
 from checks.battery import check_battery
 from checks.speakers import play_speakers
-from checks.system import check_summary, check_usb, shutdown_system
+from checks.system import added_usb_devices, check_summary, check_usb, play_usb_chime, shutdown_system
 from checks.drives import check_drives
 from checks.webcam import check_webcam
 from theme import COLORS
@@ -84,6 +84,9 @@ class App:
         self.out = scrolledtext.ScrolledText(right, font=("monospace", 11), wrap="word")
         self.out.pack(fill="both", expand=True, pady=(8, 0))
         root.after(100, self.poll)
+        self.usb_monitor_stop = threading.Event()
+        root.protocol("WM_DELETE_WINDOW", self.close)
+        threading.Thread(target=self.monitor_usb, daemon=True).start()
 
         if os.geteuid() != 0:
             self.show("info", "Tip: run with sudo for the serial number.")
@@ -122,6 +125,27 @@ class App:
         except queue.Empty:
             pass
         self.root.after(100, self.poll)
+
+    def monitor_usb(self):
+        status, snapshot = check_usb()
+        previous = set(snapshot.splitlines()) if status != "warn" else None
+        while not self.usb_monitor_stop.wait(2):
+            status, snapshot = check_usb()
+            if status == "warn":
+                continue
+            current = set(snapshot.splitlines())
+            if previous is not None:
+                added = added_usb_devices("\n".join(previous), snapshot)
+                if added:
+                    play_usb_chime()
+                    details = "New USB device connected:\n" + "\n".join(added)
+                    details += "\n\nConnected USB devices:\n" + (snapshot or "None detected")
+                    self.q.put(("USB", "info", details))
+            previous = current
+
+    def close(self):
+        self.usb_monitor_stop.set()
+        self.root.destroy()
 
     def run_all(self):
         self.badge.config(text="Running all checks...", bg=COLORS["info"])

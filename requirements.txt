@@ -3,11 +3,12 @@
 # No third-party Python packages are required.
 # The script only uses the Python 3 standard library (including tkinter).
 #
-# --- System packages (install with apt, not pip) ---
-#   sudo apt install python3 python3-tk     # Python + Tkinter (required)
-#   sudo apt install ffmpeg                 # webcam preview + MP3 speaker test
-#   sudo apt install alsa-utils             # aplay, for the speaker test
-#   sudo apt install usbutils               # lsusb, for the USB devices check
+# --- Alpine packages (include these in the ISO image) ---
+#   apk add python3 py3-tkinter             # Python + Tkinter (required)
+#   apk add ffmpeg                          # webcam preview + MP3 speaker test
+#   apk add alsa-utils                      # aplay, for speaker playback and the USB chime
+#   apk add usbutils                        # lsusb, for USB checks and monitoring
+#   apk add pulseaudio-utils                # optional paplay fallback if PulseAudio is configured
 #
 # --- Optional: only if you want to build a standalone executable ---
 # The script detects frozen builds (sys.frozen), so it works with PyInstaller.
