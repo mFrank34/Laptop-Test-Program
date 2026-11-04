@@ -10,6 +10,7 @@ from tkinter import filedialog, messagebox, scrolledtext
 from checks.battery import check_battery
 from checks.speakers import play_speakers
 from checks.system import check_summary, check_usb, shutdown_system
+from checks.drives import check_drives
 from checks.webcam import check_webcam
 from theme import COLORS
 from windows.keyboard import keyboard_window
@@ -21,6 +22,7 @@ from windows.webcam import webcam_window
 QUICK_CHECKS = [
     ("Summary", check_summary),
     ("Battery", check_battery),
+    ("Drives", check_drives),
     ("Webcam", check_webcam),
     ("USB", check_usb),
 ]
@@ -57,6 +59,7 @@ class App:
             ("Speakers (MP3)", lambda: self.go("Speakers", play_speakers)),
             ("Webcam (live preview)", lambda: webcam_window(root)),
             ("USB devices", lambda: self.go("USB", check_usb)),
+            ("Drives / storage", lambda: self.go("Drives", check_drives)),
             ("Screen colours", lambda: screen_window(root)),
             ("System summary", lambda: self.go("Summary", check_summary)),
         ]
