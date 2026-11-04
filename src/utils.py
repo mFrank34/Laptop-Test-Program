@@ -26,7 +26,10 @@ def run(cmd, timeout=15):
 
 
 def app_dir():
-    """Project root (the folder above src/), also when frozen."""
+    """Return the directory containing runtime assets."""
+    configured_dir = os.environ.get("LAPTOP_TEST_APP_DIR")
+    if configured_dir:
+        return configured_dir
     if getattr(sys, "frozen", False):
         return getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
