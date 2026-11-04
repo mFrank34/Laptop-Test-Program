@@ -23,13 +23,18 @@ def added_usb_devices(previous, current):
 
 
 def play_usb_chime():
+    """Play a short two-note chime. Returns (True, "") or (False, reason it failed)."""
     players = []
     for name, options in (("aplay", ["-q"]), ("paplay", [])):
         player = shutil.which(name)
         if player:
             players.append([player, *options])
     if not players:
-        return False
+        return False, "No audio player is installed (aplay / paplay)."
+
+    cards = read("/proc/asound/cards") or ""
+    if not cards.strip() or "no soundcards" in cards.lower():
+        return False, "No sound card was detected."
 
     sample_rate = 22050
     frames = bytearray()
@@ -37,9 +42,14 @@ def play_usb_chime():
         frame_count = int(sample_rate * duration)
         for frame in range(frame_count):
             envelope = min(frame / 180, (frame_count - frame) / 180, 1)
-            sample = int(9000 * envelope * math.sin(2 * math.pi * frequency * frame / sample_rate))
+            sample = int(
+                9000
+                * envelope
+                * math.sin(2 * math.pi * frequency * frame / sample_rate)
+            )
             frames.extend(struct.pack("<h", sample))
 
+    last_error = ""
     try:
         with tempfile.NamedTemporaryFile(suffix=".wav") as audio_file:
             with wave.open(audio_file, "wb") as audio:
@@ -51,18 +61,20 @@ def play_usb_chime():
                 try:
                     result = subprocess.run(
                         [*command, audio_file.name],
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
+                        capture_output=True,
+                        text=True,
                         timeout=5,
                         check=False,
                     )
-                except (OSError, subprocess.SubprocessError):
+                except (OSError, subprocess.SubprocessError) as e:
+                    last_error = str(e)
                     continue
                 if result.returncode == 0:
-                    return True
-        return False
-    except (OSError, subprocess.SubprocessError):
-        return False
+                    return True, ""
+                last_error = (result.stderr or "").strip()
+    except (OSError, subprocess.SubprocessError) as e:
+        last_error = str(e)
+    return False, last_error or "Audio playback failed."
 
 
 def check_summary():

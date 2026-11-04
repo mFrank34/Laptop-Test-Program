@@ -2,14 +2,20 @@
 
 import os
 import queue
+import re
 import threading
 import tkinter as tk
-from datetime import datetime
-from tkinter import filedialog, messagebox, scrolledtext
+from tkinter import messagebox, scrolledtext
 
 from checks.battery import check_battery
 from checks.speakers import play_speakers
-from checks.system import added_usb_devices, check_summary, check_usb, play_usb_chime, shutdown_system
+from checks.system import (
+    added_usb_devices,
+    check_summary,
+    check_usb,
+    play_usb_chime,
+    shutdown_system,
+)
 from checks.drives import check_drives
 from checks.webcam import check_webcam
 from theme import COLORS
@@ -26,6 +32,15 @@ QUICK_CHECKS = [
     ("Webcam", check_webcam),
     ("USB", check_usb),
 ]
+
+
+def format_usb_device(line):
+    """'Bus 001 Device 004: ID 0781:5567 SanDisk Corp. Cruzer' -> 'SanDisk Corp. Cruzer  (0781:5567)'"""
+    m = re.match(r"Bus \d+ Device \d+: ID (\w{4}:\w{4})\s*(.*)$", line.strip())
+    if not m:
+        return line.strip()
+    ids, name = m.groups()
+    return f"{name or 'Unknown device'}  ({ids})"
 
 
 def worst_status(statuses):
@@ -66,25 +81,32 @@ class App:
         for text, cmd in buttons:
             tk.Button(left, text=text, width=22, pady=4, command=cmd).pack(pady=2)
         tk.Button(
-            left, text="Run all quick checks", width=22, pady=4,
-            bg="#1565c0", fg="white", command=self.run_all,
+            left,
+            text="Run all quick checks",
+            width=22,
+            pady=4,
+            bg="#1565c0",
+            fg="white",
+            command=self.run_all,
         ).pack(pady=(12, 2))
-        tk.Button(
-            left, text="Save report", width=22, pady=4, command=self.save
-        ).pack(pady=2)
-        tk.Button(
-            left, text="Shutdown", width=22, pady=4, command=self.shutdown
-        ).pack(pady=10)
+        tk.Button(left, text="Shutdown", width=22, pady=4, command=self.shutdown).pack(
+            pady=10
+        )
 
         self.badge = tk.Label(
-            right, text="Ready", font=("sans", 18, "bold"),
-            fg="white", bg=COLORS["info"], pady=8,
+            right,
+            text="Ready",
+            font=("sans", 18, "bold"),
+            fg="white",
+            bg=COLORS["info"],
+            pady=8,
         )
         self.badge.pack(fill="x")
         self.out = scrolledtext.ScrolledText(right, font=("monospace", 11), wrap="word")
         self.out.pack(fill="both", expand=True, pady=(8, 0))
         root.after(100, self.poll)
         self.usb_monitor_stop = threading.Event()
+        self.usb_popup = None
         root.protocol("WM_DELETE_WINDOW", self.close)
         threading.Thread(target=self.monitor_usb, daemon=True).start()
 
@@ -119,6 +141,9 @@ class App:
         try:
             while True:
                 title, status, text = self.q.get_nowait()
+                if title == "!usb":
+                    self.show_usb_popup(text.splitlines())
+                    continue
                 if title != "Overall":
                     self.results[title] = (status, text)
                 self.show(status, text, title)
@@ -137,11 +162,72 @@ class App:
             if previous is not None:
                 added = added_usb_devices("\n".join(previous), snapshot)
                 if added:
-                    play_usb_chime()
                     details = "New USB device connected:\n" + "\n".join(added)
-                    details += "\n\nConnected USB devices:\n" + (snapshot or "None detected")
+                    details += "\n\nConnected USB devices:\n" + (
+                        snapshot or "None detected"
+                    )
                     self.q.put(("USB", "info", details))
+                    # pop-up first so it appears straight away, then the chime
+                    self.q.put(
+                        ("!usb", "info", "\n".join(format_usb_device(d) for d in added))
+                    )
+                    play_usb_chime()
             previous = current
+
+    def show_usb_popup(self, devices):
+        """Small window naming the USB device(s) just plugged in. Closes itself after a few seconds."""
+        self.close_usb_popup()
+        win = tk.Toplevel(self.root)
+        win.withdraw()  # build it hidden, show it once it is positioned (no jump)
+        self.usb_popup = win
+        win.title("USB device connected")
+        win.resizable(False, False)
+        win.attributes("-topmost", True)
+        tk.Label(
+            win,
+            text="USB device connected",
+            font=("sans", 14, "bold"),
+            fg="white",
+            bg=COLORS["pass"],
+            padx=24,
+            pady=8,
+        ).pack(fill="x")
+        tk.Label(
+            win,
+            text="\n".join(devices),
+            font=("sans", 11),
+            justify="left",
+            padx=24,
+            pady=14,
+        ).pack()
+        tk.Button(win, text="OK", width=10, command=self.close_usb_popup).pack(
+            pady=(0, 14)
+        )
+
+        # centre it over the main window
+        win.update_idletasks()
+        x = (
+            self.root.winfo_rootx()
+            + (self.root.winfo_width() - win.winfo_reqwidth()) // 2
+        )
+        y = (
+            self.root.winfo_rooty()
+            + (self.root.winfo_height() - win.winfo_reqheight()) // 2
+        )
+        win.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+        win.deiconify()
+        self.root.after(6000, self.close_usb_popup, win)
+
+    def close_usb_popup(self, only=None):
+        """Close the pop-up. If `only` is given, close it only if it is still the current one."""
+        win = self.usb_popup
+        if win is None or (only is not None and win is not only):
+            return
+        self.usb_popup = None
+        try:
+            win.destroy()
+        except tk.TclError:
+            pass
 
     def close(self):
         self.usb_monitor_stop.set()
@@ -156,8 +242,11 @@ class App:
                 try:
                     collected[title] = fn()
                 except Exception as e:
-                    collected[title] = ("fail", f"Unexpected error:\n{type(e).__name__}: {e}")
-                # Store each result so Save report includes it
+                    collected[title] = (
+                        "fail",
+                        f"Unexpected error:\n{type(e).__name__}: {e}",
+                    )
+                # Show each result as it completes
                 self.q.put((title, *collected[title]))
             lines = [
                 f"[{status.upper()}] {title}\n{text}\n"
@@ -173,23 +262,3 @@ class App:
     def shutdown(self):
         if messagebox.askyesno("Shutdown", "Power off this computer now?"):
             self.go("Shutdown", shutdown_system)
-
-    def save(self):
-        if not self.results:
-            messagebox.showinfo("Nothing to save", "Run some tests first, then save the report.")
-            return
-        path = filedialog.asksaveasfilename(
-            defaultextension=".txt",
-            initialfile=f"hwtest-{datetime.now():%Y%m%d-%H%M%S}.txt",
-        )
-        if not path:
-            return
-        try:
-            with open(path, "w") as f:
-                f.write(f"Hardware test report - {datetime.now():%Y-%m-%d %H:%M}\n\n")
-                for title, (status, text) in self.results.items():
-                    f.write(f"[{status.upper()}] {title}\n{text}\n\n")
-        except OSError as e:
-            messagebox.showerror("Save failed", str(e))
-            return
-        messagebox.showinfo("Saved", f"Report saved to:\n{path}")
