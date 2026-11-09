@@ -13,6 +13,7 @@ A lightweight, self-contained live Linux environment engineered specifically for
 - **Webcam Preview:** Fast video stream verification using `ffmpeg`.
 - **USB Device Monitoring:** Real-time detection and hotplug chimes for connected peripherals via `lsusb`.
 - **Device / Driver Audit:** Opens a side window that detects keyboard, mouse/touchpad, and ALSA audio presence, then reports PCI/USB devices without a bound kernel driver using Linux `/proc` and `/sys` interfaces. It flags devices for functional follow-up; detection alone does not verify operation.
+- **Program Log:** Opens the current diagnostic log, including check results and error tracebacks, with a refresh control for OS-level debugging.
 
 ---
 
@@ -48,6 +49,8 @@ From the project directory, run the hardware-independent tests with:
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
+
+The application writes its rotating log to `/tmp/laptop-test.log` by default. It records check names/statuses and errors, not raw hardware report data such as drive serial numbers. Set `LAPTOP_TEST_LOG` to change the path.
 
 ### Running standard Python source
 To execute the diagnostic tool in your environment:

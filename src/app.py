@@ -19,12 +19,14 @@ from checks.system import (
 from checks.drives import check_drives
 from checks.devices import check_devices
 from checks.webcam import check_webcam
+from app_log import configure_logging
 from theme import COLORS
 from windows.keyboard import keyboard_window
 from windows.mouse import mouse_window
 from windows.device_check import device_check_window
 from windows.screen import screen_window
 from windows.webcam import webcam_window
+from windows.program_log import program_log_window
 
 # Checks that run together under "Run all quick checks".
 QUICK_CHECKS = [
@@ -59,10 +61,20 @@ def worst_status(statuses):
 class App:
     def __init__(self, root):
         self.root = root
+        self.logger, self.log_path = configure_logging()
+        self.logger.info("Application started")
         self.results = {}
         self.q = queue.Queue()
         root.title("Quick Hardware Test")
         root.geometry("860x680")
+
+        log_panel = tk.Frame(root, padx=10, pady=8)
+        log_panel.pack(side="bottom", fill="x")
+        tk.Button(
+            log_panel,
+            text="Program log",
+            command=lambda: program_log_window(root, self.log_path),
+        ).pack(side="right")
 
         left = tk.Frame(root, padx=10, pady=10)
         left.pack(side="left", fill="y")
@@ -112,6 +124,7 @@ class App:
         self.usb_monitor_stop = threading.Event()
         self.usb_popup = None
         root.protocol("WM_DELETE_WINDOW", self.close)
+        root.report_callback_exception = self.report_callback_exception
         threading.Thread(target=self.monitor_usb, daemon=True).start()
 
         if os.geteuid() != 0:
@@ -127,16 +140,25 @@ class App:
         self.out.delete("1.0", "end")
         self.out.insert("end", text)
 
+    def report_callback_exception(self, exception, value, traceback):
+        self.logger.error(
+            "Unhandled GUI callback exception",
+            exc_info=(exception, value, traceback),
+        )
+
     # ---- background work (workers only touch the queue, never widgets)
 
     def go(self, title, fn):
         self.badge.config(text=f"{title}: running...", bg=COLORS["info"])
 
         def worker():
+            self.logger.info("Check started: %s", title)
             try:
                 status, text = fn()
             except Exception as e:
+                self.logger.exception("Check failed: %s", title)
                 status, text = "fail", f"Unexpected error:\n{type(e).__name__}: {e}"
+            self.logger.info("Check finished: %s [%s]", title, status)
             self.q.put((title, status, text))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -156,10 +178,18 @@ class App:
         self.root.after(100, self.poll)
 
     def monitor_usb(self):
-        status, snapshot = check_usb()
+        try:
+            status, snapshot = check_usb()
+        except Exception:
+            self.logger.exception("USB device monitor failed")
+            status, snapshot = "warn", ""
         previous = set(snapshot.splitlines()) if status != "warn" else None
         while not self.usb_monitor_stop.wait(2):
-            status, snapshot = check_usb()
+            try:
+                status, snapshot = check_usb()
+            except Exception:
+                self.logger.exception("USB device monitor failed")
+                continue
             if status == "warn":
                 continue
             current = set(snapshot.splitlines())
@@ -171,7 +201,6 @@ class App:
                         snapshot or "None detected"
                     )
                     self.q.put(("USB", "info", details))
-                    # pop-up first so it appears straight away, then the chime
                     self.q.put(
                         ("!usb", "info", "\n".join(format_usb_device(d) for d in added))
                     )
@@ -234,6 +263,7 @@ class App:
             pass
 
     def close(self):
+        self.logger.info("Application closing")
         self.usb_monitor_stop.set()
         self.root.destroy()
 
@@ -243,13 +273,20 @@ class App:
         def worker():
             collected = {}
             for title, fn in QUICK_CHECKS:
+                self.logger.info("Quick check started: %s", title)
                 try:
                     collected[title] = fn()
                 except Exception as e:
+                    self.logger.exception("Quick check failed: %s", title)
                     collected[title] = (
                         "fail",
                         f"Unexpected error:\n{type(e).__name__}: {e}",
                     )
+                self.logger.info(
+                    "Quick check finished: %s [%s]",
+                    title,
+                    collected[title][0],
+                )
                 # Show each result as it completes
                 self.q.put((title, *collected[title]))
             lines = [
