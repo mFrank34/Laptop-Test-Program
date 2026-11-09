@@ -7,12 +7,15 @@ from tkinter import scrolledtext
 
 from checks.devices import check_devices
 from theme import COLORS
+from windows.window_size import fit_window
 
 
 def device_check_window(root):
     win = tk.Toplevel(root)
     win.title("Device and driver check")
-    win.geometry("560x440")
+    window_width, _window_height = fit_window(
+        win, 560, 440, min_width=480, min_height=340
+    )
 
     tk.Label(
         win,
@@ -25,7 +28,7 @@ def device_check_window(root):
         win,
         text="Presence checks cannot confirm operation. Follow up with functional tests.",
         justify="left",
-        wraplength=530,
+        wraplength=max(240, window_width - 36),
         padx=12,
     ).pack(anchor="w", pady=(0, 8))
 

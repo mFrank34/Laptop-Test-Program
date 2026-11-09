@@ -4,13 +4,19 @@ import tkinter as tk
 
 from checks.devices import detect_input_devices
 from theme import COLORS
+from windows.window_size import fit_window
 
 
 def trackpad_window(root):
     win = tk.Toplevel(root)
     win.title("Trackpad test")
-    win.geometry("800x680")
-    win.minsize(760, 640)
+    window_width, _window_height = fit_window(
+        win, 880, 680, min_width=720, min_height=560
+    )
+    canvas_size = max(
+        260,
+        min(440, win.winfo_screenwidth() - 440, win.winfo_screenheight() - 300),
+    )
     names = detect_input_devices()["mouse / touchpad"]
     pad_names = [name for name in names if "touchpad" in name.lower() or "trackpad" in name.lower()]
     warning = (
@@ -27,7 +33,7 @@ def trackpad_window(root):
         fg="#7a4b00",
         bg="#fff3cd",
         justify="left",
-        wraplength=760,
+        wraplength=max(220, window_width - 40),
         padx=8,
         pady=6,
     ).pack(fill="x", padx=10, pady=(10, 4))
@@ -36,32 +42,38 @@ def trackpad_window(root):
         text="Use the built-in trackpad: tap/click, double-tap, move, drag, and two-finger scroll.",
         font=("sans", 11),
         anchor="w",
-        wraplength=760,
+        wraplength=max(220, window_width - 40),
     ).pack(fill="x", padx=10, pady=(0, 8))
 
     body = tk.Frame(win)
     body.pack(fill="both", expand=True, padx=10, pady=(0, 10))
-    canvas = tk.Canvas(body, width=440, height=440, highlightthickness=0, bg="#f4f6f7")
+    canvas = tk.Canvas(
+        body, width=canvas_size, height=canvas_size, highlightthickness=0, bg="#f4f6f7"
+    )
     canvas.pack(side="left", fill="none", expand=False)
+    scale = canvas_size / 440
+    position = lambda value: value * scale
     canvas.create_rectangle(
-        48, 48, 392, 392,
+        position(48), position(48), position(392), position(392),
         fill="#dce4e8",
         outline="#455a64",
         width=3,
     )
     canvas.create_rectangle(
-        108, 108, 332, 332,
+        position(108), position(108), position(332), position(332),
         fill="#f8fbfb",
         outline="#607d8b",
         width=3,
     )
     canvas.create_text(
-        220, 350, text="ONE CONTINUOUS TOUCH SURFACE", font=("sans", 9, "bold"),
+        position(220), position(350), text="TRACKPAD", font=("sans", 9, "bold"),
         fill="#455a64",
     )
-    pointer = canvas.create_oval(212, 212, 228, 228, fill="#1976d2", outline="")
+    pointer = canvas.create_oval(
+        position(212), position(212), position(228), position(228), fill="#1976d2", outline=""
+    )
 
-    panel = tk.Frame(body, padx=18)
+    panel = tk.Frame(body, padx=12)
     panel.pack(side="left", fill="both", expand=True)
     tests = [
         ("tap", "Tap / primary click"),
@@ -130,7 +142,7 @@ def trackpad_window(root):
         panel,
         text="Tk receives pointer events from the desktop and cannot prove whether they came from the trackpad or a mouse.",
         justify="left",
-        wraplength=360,
+        wraplength=max(180, min(320, window_width - canvas_size - 100)),
         fg="#555555",
     ).pack(anchor="w", pady=(8, 0))
     win.focus_force()

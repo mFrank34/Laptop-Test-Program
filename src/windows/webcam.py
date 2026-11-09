@@ -12,6 +12,7 @@ import tkinter as tk
 
 from theme import COLORS
 from utils import read
+from windows.window_size import fit_window
 
 CAM_W, CAM_H = 640, 360
 
@@ -65,27 +66,34 @@ def _frame_reader(proc, frames, stop):
 def webcam_window(root):
     win = tk.Toplevel(root)
     win.title("Webcam test")
+    wraplength = max(240, win.winfo_screenwidth() - 60)
     if not shutil.which("ffmpeg"):
         tk.Label(
             win, padx=30, pady=30, justify="left", font=("sans", 12),
+            wraplength=wraplength,
             text="The webcam preview needs ffmpeg.\n\nInstall it with:\n    sudo apt install ffmpeg",
         ).pack()
+        fit_window(win, 480, 240, min_width=320, min_height=180)
         return
     cams = find_cameras()
     if not cams:
         tk.Label(
             win, padx=30, pady=30, font=("sans", 12),
+            wraplength=wraplength,
             text="No camera detected (no /dev/video device).",
         ).pack()
+        fit_window(win, 480, 240, min_width=320, min_height=180)
         return
 
     choice = tk.StringVar(value=f"{cams[0][1]}  ({cams[0][0]})")
     top = tk.Frame(win)
     top.pack(fill="x", padx=10, pady=8)
-    tk.OptionMenu(top, choice, *[f"{n}  ({p})" for p, n in cams]).pack(side="left")
+    camera_menu = tk.OptionMenu(top, choice, *[f"{n}  ({p})" for p, n in cams])
+    camera_menu.configure(wraplength=wraplength, justify="left")
+    camera_menu.pack(side="left")
     go_btn = tk.Button(top, text="Start", width=8)
     go_btn.pack(side="left", padx=8)
-    status = tk.Label(win, text="Press Start.", font=("sans", 11))
+    status = tk.Label(win, text="Press Start.", font=("sans", 11), wraplength=wraplength)
     status.pack()
     blank = tk.PhotoImage(width=CAM_W, height=CAM_H)
     screen = tk.Label(win, image=blank, bg="black")
@@ -184,3 +192,4 @@ def webcam_window(root):
     go_btn.config(command=toggle)
     win.protocol("WM_DELETE_WINDOW", close)
     win.after(40, poll)
+    fit_window(win, CAM_W + 80, CAM_H + 140, min_width=360, min_height=300)

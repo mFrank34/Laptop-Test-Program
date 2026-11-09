@@ -11,13 +11,22 @@ from checks.devices import detect_input_devices
 from theme import KEY_DONE, KEY_HELD, KEY_IDLE
 from windows.keyboard_layout import RAW_NAMES, keyboard_layout
 from windows.raw_input import raw_key_listener
+from windows.window_size import fit_window
 
 
 def keyboard_window(root):
-    unit = 44
     win = tk.Toplevel(root)
     win.title("Keyboard test")
-    win.geometry(f"{int(23.5 * unit) + 30}x{int(6.5 * unit) + 400}")
+    unit = min(44, max(28, (win.winfo_screenwidth() - 80) / 23.5))
+    window_width = int(23.5 * unit) + 30
+    window_height = int(6.5 * unit) + 400
+    fit_window(
+        win,
+        window_width,
+        window_height,
+        min_width=window_width,
+        min_height=min(500, window_height),
+    )
     keyboard_names = detect_input_devices()["keyboard"]
     warning = (
         "Linux does not currently detect a keyboard. Check any Fn/keyboard-disable "
@@ -28,7 +37,7 @@ def keyboard_window(root):
     )
     tk.Label(
         win, text=warning, font=("sans", 10, "bold"), fg="#7a4b00", bg="#fff3cd",
-        wraplength=1020, justify="left", padx=8, pady=6,
+        wraplength=max(240, window_width - 32), justify="left", padx=8, pady=6,
     ).pack(fill="x", padx=8, pady=(8, 2))
     tk.Label(
         win,

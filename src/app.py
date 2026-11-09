@@ -27,6 +27,7 @@ from windows.device_check import device_check_window
 from windows.screen import screen_window
 from windows.webcam import webcam_window
 from windows.program_log import program_log_window
+from windows.window_size import fit_window
 from windows.touchscreen import touchscreen_window
 
 # Checks that run together under "Run all quick checks".
@@ -67,7 +68,7 @@ class App:
         self.results = {}
         self.q = queue.Queue()
         root.title("Quick Hardware Test")
-        root.geometry("860x680")
+        fit_window(root, 860, 680, min_width=760, min_height=560)
 
         log_panel = tk.Frame(root, padx=10, pady=8)
         log_panel.pack(side="bottom", fill="x")
@@ -97,18 +98,18 @@ class App:
             ("System summary", lambda: self.go("Summary", check_summary)),
         ]
         for text, cmd in buttons:
-            tk.Button(left, text=text, width=22, pady=4, command=cmd).pack(pady=2)
+            tk.Button(left, text=text, width=22, pady=2, command=cmd).pack(pady=1)
         tk.Button(
             left,
             text="Run all quick checks",
             width=22,
-            pady=4,
+            pady=2,
             bg="#1565c0",
             fg="white",
             command=self.run_all,
-        ).pack(pady=(12, 2))
+        ).pack(pady=(8, 1))
         tk.Button(left, text="Shutdown", width=22, pady=4, command=self.shutdown).pack(
-            pady=10
+            pady=4
         )
 
         self.badge = tk.Label(
@@ -120,7 +121,9 @@ class App:
             pady=8,
         )
         self.badge.pack(fill="x")
-        self.out = scrolledtext.ScrolledText(right, font=("monospace", 11), wrap="word")
+        self.out = scrolledtext.ScrolledText(
+            right, width=50, font=("monospace", 11), wrap="word"
+        )
         self.out.pack(fill="both", expand=True, pady=(8, 0))
         root.after(100, self.poll)
         self.usb_monitor_stop = threading.Event()
@@ -229,9 +232,10 @@ class App:
         ).pack(fill="x")
         tk.Label(
             win,
-            text="\n".join(devices),
+            text="\n".join(devices[:10]) + (f"\n... and {len(devices) - 10} more" if len(devices) > 10 else ""),
             font=("sans", 11),
             justify="left",
+            wraplength=max(240, min(500, win.winfo_screenwidth() - 80)),
             padx=24,
             pady=14,
         ).pack()
@@ -249,7 +253,9 @@ class App:
             self.root.winfo_rooty()
             + (self.root.winfo_height() - win.winfo_reqheight()) // 2
         )
-        win.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+        x = max(0, min(x, win.winfo_screenwidth() - win.winfo_reqwidth()))
+        y = max(0, min(y, win.winfo_screenheight() - win.winfo_reqheight()))
+        win.geometry(f"+{x}+{y}")
         win.deiconify()
         self.root.after(6000, self.close_usb_popup, win)
 

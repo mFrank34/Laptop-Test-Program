@@ -3,13 +3,19 @@
 import tkinter as tk
 
 from theme import COLORS, KEY_DONE, KEY_HELD
+from windows.window_size import fit_window
 
 
 def touchscreen_window(root):
     win = tk.Toplevel(root)
     win.title("Touchscreen test")
-    win.geometry("860x800")
-    win.minsize(820, 760)
+    window_width, window_height = fit_window(
+        win, 860, 800, min_width=760, min_height=620
+    )
+    canvas_size = max(
+        160,
+        min(600, window_width - 320, window_height - 250),
+    )
     header = tk.Frame(win, bg="#176b68", padx=16, pady=12)
     header.pack(fill="x")
     tk.Label(
@@ -30,13 +36,15 @@ def touchscreen_window(root):
         win,
         text="This checks touch-generated pointer input. The desktop reports touch and mouse through the same Tk events, so use your finger and avoid the mouse for this test.",
         justify="left",
-        wraplength=820,
+        wraplength=max(240, window_width - 40),
         fg="#555555",
     ).pack(anchor="w", padx=16, pady=10)
 
     body = tk.Frame(win, bg="#f4f6f6")
     body.pack(fill="both", expand=True, padx=16, pady=(0, 16))
-    canvas = tk.Canvas(body, width=600, height=600, bg="#eaf0ef", highlightthickness=0)
+    canvas = tk.Canvas(
+        body, width=canvas_size, height=canvas_size, bg="#eaf0ef", highlightthickness=0
+    )
     canvas.pack(side="left", fill="none", expand=False)
     panel = tk.Frame(body, padx=18, bg="#f4f6f6")
     panel.pack(side="left", fill="both", expand=True)
@@ -49,14 +57,15 @@ def touchscreen_window(root):
     ).pack(anchor="w", pady=(6, 8))
 
     positions = [
-        (100, 100), (300, 100), (500, 100),
-        (100, 300), (300, 300), (500, 300),
-        (100, 500), (300, 500), (500, 500),
+        (canvas_size * column / 3, canvas_size * row / 3)
+        for row in (0.5, 1.5, 2.5)
+        for column in (0.5, 1.5, 2.5)
     ]
+    target_half = max(22, int(canvas_size * 0.077))
     targets = {}
     for index, (x, y) in enumerate(positions, 1):
         tile = canvas.create_rectangle(
-            x - 46, y - 46, x + 46, y + 46,
+            x - target_half, y - target_half, x + target_half, y + target_half,
             fill="#ffffff", outline="#78928f", width=2,
         )
         text = canvas.create_text(
@@ -64,14 +73,6 @@ def touchscreen_window(root):
         )
         targets[index] = (tile, text, (x, y))
 
-    status = {
-        index: tk.Label(
-            panel, text=f"\u2610  Target {index}", font=("sans", 10), anchor="w", bg="#f4f6f6"
-        )
-        for index in targets
-    }
-    for label in status.values():
-        label.pack(fill="x", pady=3)
     progress = tk.Label(panel, text="0 of 9 targets", font=("sans", 10, "bold"), fg="#176b68", bg="#f4f6f6")
     progress.pack(anchor="w", pady=(12, 4))
     swipe_status = tk.Label(
@@ -94,7 +95,6 @@ def touchscreen_window(root):
         tapped.add(index)
         circle, _text, _position = targets[index]
         canvas.itemconfig(circle, fill=KEY_DONE)
-        status[index].config(text=f"\u2714  Target {index}", fg=COLORS["pass"])
         progress.config(text=f"{len(tapped)} of 9 targets")
         if len(tapped) == len(targets):
             info.config(text="All touch targets responded.")
@@ -107,7 +107,7 @@ def touchscreen_window(root):
             + (targets[index][2][1] - event.y) ** 2,
         )
         x, y = targets[closest][2]
-        if abs(x - event.x) <= 56 and abs(y - event.y) <= 56:
+        if abs(x - event.x) <= target_half + 10 and abs(y - event.y) <= target_half + 10:
             gesture["target"] = closest
             canvas.itemconfig(targets[closest][0], fill=KEY_HELD)
         return "break"
@@ -138,7 +138,6 @@ def touchscreen_window(root):
         tapped.clear()
         for index, (circle, _text, _position) in targets.items():
             canvas.itemconfig(circle, fill="#ffffff")
-            status[index].config(text=f"\u2610  Target {index}", fg="black")
         progress.config(text="0 of 9 targets")
         swipe_status.config(text="\u2610  Swipe", fg="black")
         info.config(text="Touch targets with your finger.")
