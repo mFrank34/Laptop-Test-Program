@@ -17,7 +17,7 @@ def keyboard_window(root):
     unit = 44
     win = tk.Toplevel(root)
     win.title("Keyboard test")
-    win.geometry(f"{int(18.5 * unit) + 30}x{int(6.5 * unit) + 400}")
+    win.geometry(f"{int(23.5 * unit) + 30}x{int(6.5 * unit) + 400}")
     keyboard_names = detect_input_devices()["keyboard"]
     warning = (
         "Linux does not currently detect a keyboard. Check any Fn/keyboard-disable "
@@ -28,7 +28,7 @@ def keyboard_window(root):
     )
     tk.Label(
         win, text=warning, font=("sans", 10, "bold"), fg="#7a4b00", bg="#fff3cd",
-        wraplength=800, justify="left", padx=8, pady=6,
+        wraplength=1020, justify="left", padx=8, pady=6,
     ).pack(fill="x", padx=8, pady=(8, 2))
     tk.Label(
         win,
@@ -39,7 +39,7 @@ def keyboard_window(root):
     counter.pack()
     canvas = tk.Canvas(
         win,
-        width=int(18.5 * unit) + 4,
+        width=int(23.5 * unit) + 4,
         height=int(6.5 * unit) + 4,
         highlightthickness=0,
     )

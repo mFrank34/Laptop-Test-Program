@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 from checks import battery, drives, system, webcam
+from windows.keyboard_layout import keyboard_layout
 from windows.raw_input import _EVENT_FMT, parse_key_events
 
 
@@ -62,6 +63,13 @@ class DriveHelperTests(unittest.TestCase):
 
 
 class SystemAndInputTests(unittest.TestCase):
+    def test_full_size_keyboard_has_numeric_keypad(self):
+        keys = keyboard_layout()
+        by_code = {code: label for label, code, _x, _y, _w, _h in keys}
+
+        self.assertTrue({77, 106, 63, 82, 79, 80, 81, 86, 83, 84, 85, 87, 88, 89, 104, 90, 91} <= set(by_code))
+        self.assertEqual(len(by_code), len(keys))
+
     def test_added_usb_devices_reports_only_new_lines(self):
         added = system.added_usb_devices("device A\ndevice B", "device B\ndevice C")
         self.assertEqual(added, ["device C"])

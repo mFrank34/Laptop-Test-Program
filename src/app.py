@@ -22,11 +22,12 @@ from checks.webcam import check_webcam
 from app_log import configure_logging
 from theme import COLORS
 from windows.keyboard import keyboard_window
-from windows.mouse import mouse_window
+from windows.trackpad import trackpad_window
 from windows.device_check import device_check_window
 from windows.screen import screen_window
 from windows.webcam import webcam_window
 from windows.program_log import program_log_window
+from windows.touchscreen import touchscreen_window
 
 # Checks that run together under "Run all quick checks".
 QUICK_CHECKS = [
@@ -85,13 +86,14 @@ class App:
         buttons = [
             ("Battery health", lambda: self.go("Battery", check_battery)),
             ("Keyboard (lights up)", lambda: keyboard_window(root)),
-            ("Mouse / touchpad", lambda: mouse_window(root)),
+            ("Trackpad test", lambda: trackpad_window(root)),
             ("Speakers (MP3)", lambda: self.go("Speakers", play_speakers)),
             ("Webcam (live preview)", lambda: webcam_window(root)),
             ("USB devices", lambda: self.go("USB", check_usb)),
             ("Devices / drivers", lambda: device_check_window(root)),
             ("Drives / storage", lambda: self.go("Drives", check_drives)),
             ("Screen colours", lambda: screen_window(root)),
+            ("Touchscreen test", lambda: touchscreen_window(root)),
             ("System summary", lambda: self.go("Summary", check_summary)),
         ]
         for text, cmd in buttons:

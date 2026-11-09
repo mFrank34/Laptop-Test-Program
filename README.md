@@ -6,8 +6,9 @@ A lightweight, self-contained live Linux environment engineered specifically for
 
 ## ✨ Features
 
-- **Keyboard Test:** Verify key press responses and layouts interactively.
-- **Mouse & Touchpad Test:** Check clicks, scrolling performance, and tracking precision.
+- **Keyboard Test:** Verify key press responses interactively with a full-size layout, including the numeric keypad.
+- **Trackpad Test:** Check taps/clicks, double-tap, pointer movement, dragging, and scrolling gestures.
+- **Touchscreen Test:** Check nine touch targets and swipe input using desktop pointer events.
 - **Display Test:** Screen for dead pixels, backlight bleed, and color accuracy with full-screen test patterns.
 - **Audio & Speaker Test:** Validate output clarity and playback channel balance.
 - **Webcam Preview:** Fast video stream verification using `ffmpeg`.
