@@ -7,6 +7,7 @@ import time
 import tkinter as tk
 from tkinter import scrolledtext
 
+from checks.devices import detect_input_devices
 from theme import KEY_DONE, KEY_HELD, KEY_IDLE
 from windows.keyboard_layout import RAW_NAMES, keyboard_layout
 from windows.raw_input import raw_key_listener
@@ -17,11 +18,23 @@ def keyboard_window(root):
     win = tk.Toplevel(root)
     win.title("Keyboard test")
     win.geometry(f"{int(18.5 * unit) + 30}x{int(6.5 * unit) + 400}")
+    keyboard_names = detect_input_devices()["keyboard"]
+    warning = (
+        "Linux does not currently detect a keyboard. Check any Fn/keyboard-disable "
+        "toggle or firmware settings."
+        if not keyboard_names
+        else "If keys do not respond, check for a keyboard-disable/Fn toggle or "
+        "firmware setting. This screen cannot read that setting directly."
+    )
+    tk.Label(
+        win, text=warning, font=("sans", 10, "bold"), fg="#7a4b00", bg="#fff3cd",
+        wraplength=800, justify="left", padx=8, pady=6,
+    ).pack(fill="x", padx=8, pady=(8, 2))
     tk.Label(
         win,
         text="Press every key. Keys light up while held and turn green once tested.",
         font=("sans", 12),
-    ).pack(pady=(8, 2))
+    ).pack(pady=(4, 2))
     counter = tk.Label(win, font=("sans", 16, "bold"), fg="#1565c0")
     counter.pack()
     canvas = tk.Canvas(

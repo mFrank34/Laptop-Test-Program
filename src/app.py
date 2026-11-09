@@ -17,10 +17,12 @@ from checks.system import (
     shutdown_system,
 )
 from checks.drives import check_drives
+from checks.devices import check_devices
 from checks.webcam import check_webcam
 from theme import COLORS
 from windows.keyboard import keyboard_window
 from windows.mouse import mouse_window
+from windows.device_check import device_check_window
 from windows.screen import screen_window
 from windows.webcam import webcam_window
 
@@ -31,6 +33,7 @@ QUICK_CHECKS = [
     ("Drives", check_drives),
     ("Webcam", check_webcam),
     ("USB", check_usb),
+    ("Devices / drivers", check_devices),
 ]
 
 
@@ -74,6 +77,7 @@ class App:
             ("Speakers (MP3)", lambda: self.go("Speakers", play_speakers)),
             ("Webcam (live preview)", lambda: webcam_window(root)),
             ("USB devices", lambda: self.go("USB", check_usb)),
+            ("Devices / drivers", lambda: device_check_window(root)),
             ("Drives / storage", lambda: self.go("Drives", check_drives)),
             ("Screen colours", lambda: screen_window(root)),
             ("System summary", lambda: self.go("Summary", check_summary)),

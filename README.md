@@ -12,6 +12,7 @@ A lightweight, self-contained live Linux environment engineered specifically for
 - **Audio & Speaker Test:** Validate output clarity and playback channel balance.
 - **Webcam Preview:** Fast video stream verification using `ffmpeg`.
 - **USB Device Monitoring:** Real-time detection and hotplug chimes for connected peripherals via `lsusb`.
+- **Device / Driver Audit:** Opens a side window that detects keyboard, mouse/touchpad, and ALSA audio presence, then reports PCI/USB devices without a bound kernel driver using Linux `/proc` and `/sys` interfaces. It flags devices for functional follow-up; detection alone does not verify operation.
 
 ---
 
@@ -39,6 +40,14 @@ apk add pulseaudio-utils  # Optional fallback if PulseAudio is configured (`papl
 ---
 
 ## 🚀 Usage & Deployment
+
+### Running unit tests
+
+From the project directory, run the hardware-independent tests with:
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -v
+```
 
 ### Running standard Python source
 To execute the diagnostic tool in your environment:

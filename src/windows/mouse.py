@@ -2,6 +2,7 @@
 
 import tkinter as tk
 
+from checks.devices import detect_input_devices
 from theme import COLORS, KEY_DONE, KEY_HELD, KEY_IDLE
 
 
@@ -9,10 +10,22 @@ def mouse_window(root):
     win = tk.Toplevel(root)
     win.title("Mouse / touchpad test")
     win.geometry("700x440")
+    mouse_names = detect_input_devices()["mouse / touchpad"]
     canvas = tk.Canvas(win, width=320, height=420, highlightthickness=0)
     canvas.pack(side="left", padx=10, pady=10)
     panel = tk.Frame(win)
     panel.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+    warning = (
+        "Linux does not currently detect a mouse or touchpad. Check its connection, "
+        "Fn/firmware disable settings, or try an external mouse."
+        if not mouse_names
+        else "If the pointer or buttons do not respond, check for a touchpad/Fn "
+        "disable toggle or firmware setting. Detection does not verify operation."
+    )
+    tk.Label(
+        panel, text=warning, font=("sans", 10, "bold"), fg="#7a4b00", bg="#fff3cd",
+        justify="left", wraplength=340, padx=8, pady=6,
+    ).pack(fill="x", pady=(0, 8))
     tk.Label(
         panel, text="Try each action. Ticks turn green.", font=("sans", 12, "bold")
     ).pack(anchor="w", pady=(0, 8))
